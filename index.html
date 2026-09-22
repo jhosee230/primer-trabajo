@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050505">
+<title>Para Lucas ❤️</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; width:100%; min-height:100%; background:#050505; color:#fff; font-family: Georgia, "Times New Roman", serif; overflow:hidden; }
+  body { min-height:100svh; display:grid; place-items:center; }
+  .scene { position:relative; width:100%; height:100svh; min-height:520px; display:grid; place-items:center; isolation:isolate; overflow:hidden; }
+  .glow { position:absolute; width:min(85vw,560px); aspect-ratio:1; border-radius:50%; background:radial-gradient(circle, rgba(160,0,25,.15), transparent 68%); filter:blur(10px); opacity:.7; }
+  #heartWords { position:absolute; inset:0; display:flex; justify-content:center; align-items:center; }
+  .word { position:absolute; color:#ff173c; font-size:clamp(12px,2.7vw,20px); font-weight:bold; letter-spacing:1.2px; text-shadow:0 0 7px #ff002b, 0 0 18px rgba(255,0,45,.6); white-space:nowrap; opacity:0; animation:appear 1s ease forwards; }
+  @keyframes appear { from {opacity:0; transform:scale(.4)} to {opacity:1; transform:scale(1)} }
+  .word.fade { animation:fadeOut 2.8s ease forwards; }
+  @keyframes fadeOut { 0% {opacity:1; transform:scale(1)} 100% {opacity:0; transform:scale(.55); filter:blur(7px)} }
+  .intro { position:absolute; z-index:3; text-align:center; padding:24px; width:min(92vw,620px); }
+  .start { border:1px solid rgba(255,90,115,.65); background:rgba(35,0,8,.72); color:#ffdce2; border-radius:999px; padding:14px 25px; font:16px Georgia,serif; letter-spacing:.4px; cursor:pointer; box-shadow:0 0 22px rgba(255,0,45,.17); transition:transform .2s, background .2s; }
+  .start:active { transform:scale(.97); }
+  .hint { color:#a99a9d; font:12px Arial,sans-serif; margin-top:14px; letter-spacing:1.2px; }
+  .reveal { position:absolute; z-index:4; text-align:center; width:100%; padding:20px; opacity:0; transform:translateY(15px) scale(.96); pointer-events:none; }
+  .reveal.show { animation:reveal 2s ease forwards; }
+  @keyframes reveal { to {opacity:1; transform:translateY(0) scale(1)} }
+  .name { color:#ff2448; font-size:clamp(48px,13vw,104px); font-weight:bold; letter-spacing:clamp(4px,2vw,14px); text-shadow:0 0 12px #ff173c, 0 0 35px rgba(255,0,45,.75); margin:0 0 22px; }
+  .message { color:#f7e9eb; font-size:clamp(16px,4vw,23px); line-height:1.7; max-width:530px; margin:auto; }
+  .tiny-heart { color:#ff2448; display:inline-block; font-size:25px; margin-top:22px; animation:pulse 1.5s infinite; text-shadow:0 0 15px #ff2448; }
+  @keyframes pulse { 50% {transform:scale(1.28); opacity:.7} }
+  .sound { position:absolute; z-index:5; bottom:22px; right:18px; border:1px solid #493039; color:#d8c5ca; background:#10090c; border-radius:30px; padding:9px 13px; font:12px Arial,sans-serif; cursor:pointer; opacity:.8; }
+  .restart { position:absolute; z-index:5; bottom:22px; left:18px; border:1px solid #493039; color:#d8c5ca; background:#10090c; border-radius:30px; padding:9px 13px; font:12px Arial,sans-serif; cursor:pointer; opacity:0; pointer-events:none; }
+  .restart.visible {opacity:.8; pointer-events:auto}
+  .particle { position:absolute; bottom:-20px; color:#e8002c; opacity:0; animation:floatUp linear infinite; text-shadow:0 0 10px #ff0033; }
+  @keyframes floatUp { 0% {transform:translateY(0) scale(.6); opacity:0} 15% {opacity:.55} 85% {opacity:.35} 100% {transform:translateY(-110svh) scale(1.2); opacity:0} }
+  @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; } }
+</style>
+</head>
+<body>
+<main class="scene">
+  <div class="glow"></div>
+  <div id="heartWords" aria-hidden="true"></div>
+  <div class="intro" id="intro">
+    <button class="start" id="startBtn">Toca aquí, mi persona especial ❤️</button>
+    <div class="hint">Ponte los auriculares… 🎵</div>
+  </div>
+  <section class="reveal" id="reveal">
+    <h1 class="name">LUCAS</h1>
+    <p class="message">Entre tantas personas en este mundo,<br>mi corazón siempre encuentra el camino hacia ti.<br><br><strong>Te amo muchísimo. ❤️</strong></p>
+    <span class="tiny-heart">♥</span>
+  </section>
+  <div id="musicBox" style="position:absolute;z-index:6;bottom:62px;left:50%;transform:translateX(-50%);width:min(92vw,360px);text-align:center;display:none">
+    <iframe id="musicFrame" width="100%" height="80" src="https://www.youtube-nocookie.com/embed/MfrQiz5_h38?playsinline=1" title="Right Here instrumental" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    <div style="font:11px Arial,sans-serif;color:#bcaeb1;margin-top:4px">Pulsa reproducir para escuchar el instrumental 🎵</div>
+  </div>
+  <button class="sound" id="soundBtn" aria-label="Mostrar instrumental">♫ Escuchar instrumental</button>
+  <button class="restart" id="restartBtn">Volver a empezar ↻</button>
+</main>
+<script>
+const holder = document.getElementById('heartWords');
+const intro = document.getElementById('intro');
+const reveal = document.getElementById('reveal');
+const startBtn = document.getElementById('startBtn');
+const soundBtn = document.getElementById('soundBtn');
+const restartBtn = document.getElementById('restartBtn');
+let audioCtx, musicOn = true, melodyTimer, started = false;
+
+function insideHeart(x,y) {
+  return Math.pow(x*x+y*y-1,3) - x*x*y*y*y <= 0;
+}
+function makeHeart() {
+  holder.innerHTML = '';
+  const count = 92;
+  let made = 0, attempts = 0;
+  while (made < count && attempts < 12000) {
+    attempts++;
+    const x = Math.random()*2.5-1.25;
+    const y = Math.random()*2.25-1.05;
+    if (!insideHeart(x, y)) continue;
+    const el = document.createElement('span');
+    el.className = 'word';
+    el.textContent = Math.random() > .2 ? 'TE AMO' : '♥ TE AMO ♥';
+    el.style.left = (50 + x*31) + '%';
+    el.style.top = (48 - y*31) + '%';
+    el.style.animationDelay = (Math.random()*1.8) + 's';
+    el.style.fontSize = (12 + Math.random()*7) + 'px';
+    holder.appendChild(el);
+    made++;
+  }
+}
+function particles() {
+  document.querySelectorAll('.particle').forEach(p=>p.remove());
+  for (let i=0;i<24;i++) {
+    const p=document.createElement('span');
+    p.className='particle'; p.textContent=Math.random()>.5?'♥':'✦';
+    p.style.left=Math.random()*100+'%';
+    p.style.animationDuration=(7+Math.random()*9)+'s';
+    p.style.animationDelay=(Math.random()*8)+'s';
+    p.style.fontSize=(10+Math.random()*16)+'px';
+    document.querySelector('.scene').appendChild(p);
+  }
+}
+// Gentle original chime melody made with Web Audio; no external track required.
+const notes = [523.25,659.25,783.99,659.25,587.33,698.46,880,698.46,523.25,659.25,783.99,1046.5];
+function playNote(freq, when, duration) {
+  if (!audioCtx || !musicOn) return;
+  const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+  osc.type='sine'; osc.frequency.setValueAtTime(freq,when);
+  gain.gain.setValueAtTime(0.0001,when);
+  gain.gain.exponentialRampToValueAtTime(0.07,when+0.06);
+  gain.gain.exponentialRampToValueAtTime(0.0001,when+duration);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(when); osc.stop(when+duration+0.03);
+}
+function startMelody() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state==='suspended') audioCtx.resume();
+  clearInterval(melodyTimer);
+  let i=0;
+  const play=()=>{ if(musicOn) { const now=audioCtx.currentTime; playNote(notes[i%notes.length],now,.55); if(i%3===0) playNote(notes[(i+4)%notes.length]/2,now,.8); i++; } };
+  play(); melodyTimer=setInterval(play,480);
+}
+function begin() {
+  if(started) return;
+  started=true;
+  intro.style.display='none';
+  document.getElementById("musicBox").style.display="block";
+  makeHeart();
+  particles();
+  setTimeout(()=>{
+    document.querySelectorAll('.word').forEach((el,i)=>setTimeout(()=>el.classList.add('fade'),Math.random()*900));
+  },4300);
+  setTimeout(()=>{
+    holder.innerHTML='';
+    reveal.classList.add('show');
+    restartBtn.classList.add('visible');
+  },6900);
+}
+startBtn.addEventListener('click',begin);
+soundBtn.addEventListener('click',()=>{
+  const box=document.getElementById("musicBox");
+  box.style.display = box.style.display==="none" ? "block" : "none";
+  soundBtn.textContent = box.style.display==="none" ? "♫ Escuchar instrumental" : "♫ Ocultar instrumental";
+});
+restartBtn.addEventListener('click',()=>{
+  reveal.classList.remove('show'); restartBtn.classList.remove('visible');
+  started=false; begin();
+});
+particles();
+</script>
+</body>
+</html>
